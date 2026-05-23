@@ -58,7 +58,8 @@ jobs:
         run: |
           VERSION=$(node -p "require('./package.json').version")
           if [[ "$VERSION" == *-* ]]; then
-            TAG=$(echo "$VERSION" | sed 's/.*-\([a-z]*\).*/\1/')
+            TAG=${VERSION#*-}
+            TAG=${TAG%%.*}
             echo "tag=$TAG" >> "$GITHUB_OUTPUT"
             echo "prerelease=true" >> "$GITHUB_OUTPUT"
           else
