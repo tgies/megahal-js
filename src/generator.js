@@ -287,7 +287,7 @@ export function capitalize(tokens) {
   /** @type {string[]} */
   const result = [];
   let start = true;
-  let i = 0;
+  let offset = 0;
 
   for (const char of raw) {
     if (isAsciiLetter(char)) {
@@ -301,13 +301,13 @@ export function capitalize(tokens) {
       result.push(char);
     }
 
-    if (i > 2 && isAsciiWhitespace(char)) {
-      const prev = raw[i - 1];
+    if (offset > 2 && isAsciiWhitespace(char)) {
+      const prev = raw[offset - 1];
       if (prev === '!' || prev === '.' || prev === '?') {
         start = true;
       }
     }
-    i++;
+    offset += char.length;
   }
 
   return result.join('');

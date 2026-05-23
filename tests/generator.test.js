@@ -495,6 +495,10 @@ describe('capitalize', () => {
     expect(capitalize(tokens)).toBe('Hello. World.');
   });
 
+  test('astral symbols before sentence punctuation keep UTF-16 offsets', () => {
+    expect(capitalize(['a', '\u{1F642}. ', 'b', '.'])).toBe('A\u{1F642}. B.');
+  });
+
   test('exclamation and question marks', () => {
     expect(capitalize(['wow', '! ', 'amazing', '.'])).toBe('Wow! Amazing.');
     expect(capitalize(['really', '? ', 'yes', '.'])).toBe('Really? Yes.');
