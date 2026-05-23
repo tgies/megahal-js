@@ -1,4 +1,4 @@
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect, vi } from 'vitest';
 import { generateOneReply, generateReply, capitalize } from '../src/generator.js';
 import { BidirectionalModel } from '../src/model.js';
 
@@ -29,24 +29,28 @@ function buildModel(order, sentences) {
 // These kill mutants in seed(), babble(), generateOneReply() internals.
 // ============================================================================
 describe('deterministic generation: exact outputs', () => {
+  test('omitted rng uses Math.random fallback', () => {
+    const model = buildModel(1, [['A', 'B', 'C']]);
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.99);
+    try {
+      expect(generateOneReply(model, new Set(), new Set())).toEqual(['A', 'B', 'C']);
+    } finally {
+      randomSpy.mockRestore();
+    }
+  });
+
   test('seed=42, order=1, single sentence: exact reply', () => {
     const model = buildModel(1, [['A', 'B', 'C']]);
     const rng = makeSeededRng(42);
     const reply = generateOneReply(model, new Set(['B']), new Set(), rng);
-    // Pin the exact output for this seed+model combination
-    // If any mutation changes seed selection, babble, or loop logic, this breaks
-    const expected = generateOneReply(model, new Set(['B']), new Set(), makeSeededRng(42));
-    expect(reply).toEqual(expected);
-    // Also verify it's non-empty
-    expect(reply.length).toBeGreaterThan(0);
+    expect(reply).toEqual(['A', 'B', 'C']);
   });
 
   test('seed=0, order=1, two sentences: exact reply', () => {
     const model = buildModel(1, [['X', 'Y'], ['Y', 'Z']]);
     const rng = makeSeededRng(0);
     const reply = generateOneReply(model, new Set(['Y']), new Set(), rng);
-    const expected = generateOneReply(model, new Set(['Y']), new Set(), makeSeededRng(0));
-    expect(reply).toEqual(expected);
+    expect(reply).toEqual(['Y']);
   });
 
   test('generateReply with maxIterations=1: exact deterministic output', () => {
@@ -56,12 +60,7 @@ describe('deterministic generation: exact outputs', () => {
       model, ['X'], new Set(['A']), new Set(),
       { timeout: 0, maxIterations: 1 }, rng
     );
-    // Pin exact output
-    const expected = generateReply(
-      model, ['X'], new Set(['A']), new Set(),
-      { timeout: 0, maxIterations: 1 }, makeSeededRng(42)
-    );
-    expect(result).toEqual(expected);
+    expect(result).toEqual(['A', 'B', 'C']);
   });
 });
 
@@ -187,6 +186,13 @@ describe('seed function behavior', () => {
     const reply1 = generateOneReply(model, kw1, new Set(), makeSeededRng(42));
     const reply2 = generateOneReply(model, kw2, new Set(), makeSeededRng(42));
     expect(reply1).toEqual(reply2);
+    expect(reply1).toEqual(['C', 'D']);
+  });
+
+  test('all auxiliary keywords are skipped before random fallback', () => {
+    const model = buildModel(1, [['A', 'B'], ['C', 'D']]);
+    const reply = generateOneReply(model, new Set(['A']), new Set(['A']), makeSeededRng(42));
+    expect(reply).toEqual(['C', 'D']);
   });
 });
 
@@ -483,6 +489,16 @@ describe('capitalize edge cases for regex mutants', () => {
     expect(capitalize(['hello', '.\t', 'world'])).toBe('Hello.\tWorld');
   });
 
+  test('newline and carriage return after punctuation trigger capitalization', () => {
+    expect(capitalize(['hello', '.\n', 'world'])).toBe('Hello.\nWorld');
+    expect(capitalize(['hello', '.\r', 'world'])).toBe('Hello.\rWorld');
+  });
+
+  test('form feed and vertical tab after punctuation trigger capitalization', () => {
+    expect(capitalize(['hello', '.\f', 'world'])).toBe('Hello.\fWorld');
+    expect(capitalize(['hello', '.\v', 'world'])).toBe('Hello.\vWorld');
+  });
+
   test('position > 2 boundary is strict: i > 2, not i >= 2', () => {
     // At position i=2, the check `i > 2` is false, so no capitalization
     // "a. b" → a(0) .(1) ' '(2) b(3)
@@ -497,6 +513,7 @@ describe('capitalize edge cases for regex mutants', () => {
     expect(capitalize(['hello'])).toBe('Hello');
     // After first alpha, start=false, rest lowercase
     expect(capitalize(['HELLO'])).toBe('Hello');
+    expect(capitalize(['ABZ'])).toBe('Abz');
   });
 
   test('non-alpha chars do not change start flag', () => {
@@ -504,6 +521,8 @@ describe('capitalize edge cases for regex mutants', () => {
     expect(capitalize(['123', 'abc'])).toBe('123Abc');
     // Punctuation before first alpha → start stays true
     expect(capitalize(['...', 'hello'])).toBe('...Hello');
+    expect(capitalize(['[abc'])).toBe('[Abc');
+    expect(capitalize(['{abc'])).toBe('{Abc');
   });
 
   test('loop iterates exactly raw.length times', () => {

@@ -1,4 +1,4 @@
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect, vi } from 'vitest';
 import { MegaHal, parseWordList, parseSwapFile, KeywordConfig, loadWordList, loadSwapFile } from '../index.js';
 
 import * as fs from 'node:fs/promises';
@@ -16,10 +16,29 @@ function makeSeededRng(seed) {
   };
 }
 
+function withoutProcess(callback) {
+  const originalProcess = globalThis.process;
+  Object.defineProperty(globalThis, 'process', {
+    configurable: true,
+    value: undefined
+  });
+  try {
+    return callback();
+  } finally {
+    Object.defineProperty(globalThis, 'process', {
+      configurable: true,
+      value: originalProcess
+    });
+  }
+}
+
 describe('MegaHal Engine Integration', () => {
   test('new engine creates empty model with ERROR and FIN', () => {
     const hal = new MegaHal(5);
     expect(hal.model.dictionary.size).toBe(2);
+    expect(hal.greetings).toEqual([]);
+    expect(hal.limit).toEqual({ timeout: 1000, maxIterations: 0 });
+    expect(hal.fallbackReply).toBe("I don't know enough to answer you yet!");
   });
 
   test('respond returns non-empty and handles fallback when empty', () => {
@@ -216,6 +235,26 @@ describe('MegaHal Engine Integration', () => {
     expect(result).toBeNull();
   });
 
+  test('generate returns generated text instead of null when a reply exists', () => {
+    const hal = new MegaHal(2, makeSeededRng(42));
+    hal.setLimit({ timeout: 0, maxIterations: 5 });
+    hal.learn('The cat sat on the mat and watched birds outside.');
+
+    expect(hal.generate('cat')).toBe(
+      'The cat sat on the cat sat on the cat sat on the mat and watched birds outside.'
+    );
+  });
+
+  test('respond returns generated text instead of fallback when a reply exists', () => {
+    const hal = new MegaHal(2, makeSeededRng(42));
+    hal.setLimit({ timeout: 0, maxIterations: 5 });
+    hal.learn('The cat sat on the mat and watched birds outside.');
+
+    expect(hal.respond('cat')).toBe(
+      'The cat sat on the cat sat on the cat sat on the mat and watched birds outside.'
+    );
+  });
+
   test('loadWordList works in Node environment', async () => {
     const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'megahal-test-'));
     const tmpFile = path.join(tmpDir, 'words.txt');
@@ -243,7 +282,9 @@ describe('MegaHal Engine Integration', () => {
   test('loadWordList refuses to run in a browser-like environment', async () => {
     globalThis.window = {};
     try {
-      await expect(loadWordList('ignored')).rejects.toThrow(/Node\.js/);
+      await expect(loadWordList('ignored')).rejects.toThrow(
+        'loadWordList is only supported in Node.js environment'
+      );
     } finally {
       delete globalThis.window;
     }
@@ -252,10 +293,57 @@ describe('MegaHal Engine Integration', () => {
   test('loadSwapFile refuses to run in a browser-like environment', async () => {
     globalThis.window = {};
     try {
-      await expect(loadSwapFile('ignored')).rejects.toThrow(/Node\.js/);
+      await expect(loadSwapFile('ignored')).rejects.toThrow(
+        'loadSwapFile is only supported in Node.js environment'
+      );
     } finally {
       delete globalThis.window;
     }
+  });
+
+  test('instance file helpers refuse to run in a browser-like environment', async () => {
+    const hal = new MegaHal(2);
+    globalThis.window = {};
+    try {
+      await expect(hal.saveBrain('ignored')).rejects.toThrow(
+        'saveBrain is only supported in Node.js environment'
+      );
+      await expect(hal.loadBrain('ignored')).rejects.toThrow(
+        'loadBrain is only supported in Node.js environment'
+      );
+      await expect(hal.trainFromFile('ignored')).rejects.toThrow(
+        'trainFromFile is only supported in Node.js environment'
+      );
+    } finally {
+      delete globalThis.window;
+    }
+  });
+
+  test('file helpers refuse to run when process is absent', async () => {
+    const hal = new MegaHal(2);
+    const promises = withoutProcess(() => [
+      loadWordList('ignored'),
+      loadSwapFile('ignored'),
+      hal.saveBrain('ignored'),
+      hal.loadBrain('ignored'),
+      hal.trainFromFile('ignored')
+    ]);
+
+    await expect(promises[0]).rejects.toThrow(
+      'loadWordList is only supported in Node.js environment'
+    );
+    await expect(promises[1]).rejects.toThrow(
+      'loadSwapFile is only supported in Node.js environment'
+    );
+    await expect(promises[2]).rejects.toThrow(
+      'saveBrain is only supported in Node.js environment'
+    );
+    await expect(promises[3]).rejects.toThrow(
+      'loadBrain is only supported in Node.js environment'
+    );
+    await expect(promises[4]).rejects.toThrow(
+      'trainFromFile is only supported in Node.js environment'
+    );
   });
 
   test('respond uses custom fallbackReply when model cannot generate', () => {
@@ -286,19 +374,32 @@ describe('MegaHal Engine Integration', () => {
     }
     hal.setGreetings(['Hello']);
     const reply = hal.greet();
-    // Should produce a real reply (not fallback) since model has data
-    expect(reply).toBeDefined();
-    expect(reply.length).toBeGreaterThan(0);
-    // Should NOT be the fallback greeting since model has learned data
-    // (with enough training and iterations, a reply should be generated)
+    expect(reply).toBe('Hello world is beautiful and amazing today.');
   });
 
   test('greet picks from multiple greetings', () => {
     const hal = new MegaHal(5);
+    hal.setLimit({ timeout: 0, maxIterations: 1 });
     hal.setGreetings(['Hello', 'Hi', 'Hey']);
     // Without training data, all greetings should result in fallback
     const reply = hal.greet();
     expect(reply).toBe('Hello!');
+  });
+
+  test('greet uses injected rng for greeting selection', () => {
+    const calls = [];
+    const rng = {
+      randomRange(min, max) {
+        calls.push([min, max]);
+        return 1;
+      }
+    };
+    const hal = new MegaHal(5, rng);
+    hal.setLimit({ timeout: 0, maxIterations: 1 });
+    hal.setGreetings(['Hello', 'Hi', 'Hey']);
+
+    expect(hal.greet()).toBe('Hello!');
+    expect(calls).toEqual([[0, 3]]);
   });
 
   test('saveBrain and loadBrain roundtrip', async () => {
@@ -352,15 +453,17 @@ describe('MegaHal Engine Integration', () => {
   });
 
   test('randomRange without rng uses Math.random fallback', () => {
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0);
     // Create MegaHal without rng (null)
     const hal = new MegaHal(2);
-    hal.setLimit({ maxIterations: 1, timeout: 10 });
-    // Train enough data
-    hal.learn('The quick brown fox jumps over the lazy dog.');
-    // This exercises the Math.random() fallback in randomRange
-    const reply = hal.respond('Tell me about the fox jumping over the dog today.');
-    // Should return something (either generated reply or fallback)
-    expect(typeof reply).toBe('string');
-    expect(reply.length).toBeGreaterThan(0);
+    hal.setLimit({ timeout: 0, maxIterations: 1 });
+    hal.setGreetings(['Hello', 'Hi']);
+
+    try {
+      expect(hal.greet()).toBe('Hello!');
+      expect(randomSpy).toHaveBeenCalledOnce();
+    } finally {
+      randomSpy.mockRestore();
+    }
   });
 });
