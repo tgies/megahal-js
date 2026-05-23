@@ -75,20 +75,20 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           DIST_TAG: ${{ steps.dist-tag.outputs.tag }}
 
-      - name: Get tag message
-        id: tag_message
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REF_NAME: ${{ github.ref_name }}
+          PRERELEASE: ${{ steps.dist-tag.outputs.prerelease }}
         run: |
           git fetch --tags --force
-          TAG_MSG=$(git tag -l --format='%(contents)' "${{ github.ref_name }}")
-          {
-            echo "message<<EOF"
-            echo "$TAG_MSG"
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
-        with:
-          body: ${{ steps.tag_message.outputs.message }}
-          generate_release_notes: true
-          prerelease: ${{ steps.dist-tag.outputs.prerelease == 'true' }}
+          TAG_MSG=$(git tag -l --format='%(contents)' "$REF_NAME")
+          PRERELEASE_FLAG=()
+          if [[ "$PRERELEASE" == "true" ]]; then
+            PRERELEASE_FLAG=(--prerelease)
+          fi
+          gh release create "$REF_NAME" \
+            --title "$REF_NAME" \
+            --notes "$TAG_MSG" \
+            --generate-notes \
+            "${PRERELEASE_FLAG[@]}"
