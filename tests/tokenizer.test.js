@@ -99,6 +99,12 @@ describe('Tokenizer', () => {
     expect(tokens).toEqual(['123', 'ABC', '.']);
   });
 
+  test('digit and alpha boundary characters tokenize correctly', () => {
+    expect(tokenize('0a9z')).toEqual(['0', 'A', '9', 'Z', '.']);
+    expect(tokenize('09')).toEqual(['09', '.']);
+    expect(tokenize('89')).toEqual(['89', '.']);
+  });
+
   test('alpha followed by digits create boundary: abc123', () => {
     const tokens = tokenize('abc123');
     expect(tokens).toEqual(['ABC', '123', '.']);
@@ -107,6 +113,11 @@ describe('Tokenizer', () => {
   test('mixed punctuation in middle of words', () => {
     // '-' is not alpha/digit, creates boundaries between HELLO, -, and WORLD
     expect(tokenize('hello-world')).toEqual(['HELLO', '-', 'WORLD', '.']);
+    expect(tokenize('A[B')).toEqual(['A', '[', 'B', '.']);
+  });
+
+  test('apostrophe followed by non-alpha is a boundary', () => {
+    expect(tokenize("A'[B")).toEqual(['A', "'[", 'B', '.']);
   });
 
   test('input with only a single period', () => {
@@ -130,4 +141,3 @@ describe('Tokenizer', () => {
     expect(tokens).toEqual(['5', '.']);
   });
 });
-

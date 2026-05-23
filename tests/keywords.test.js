@@ -16,6 +16,11 @@ describe('Keyword Extractor', () => {
     expect(swap.apply('HELLO')).toEqual(['HELLO']); // no match returns original
   });
 
+  test('SwapTable starts without implicit substitutions', () => {
+    const swap = new SwapTable();
+    expect(swap.apply('s')).toEqual(['S']);
+  });
+
   test('extractKeywords skips words not in dict', () => {
     const dict = new SymbolDict();
     dict.intern('HELLO');
@@ -33,13 +38,27 @@ describe('Keyword Extractor', () => {
     dict.intern('HELLO');
     dict.intern(' ');
     dict.intern('.');
+    dict.intern('[');
+    dict.intern(':');
 
-    const config = new KeywordConfig();
-    const keywords = extractKeywords(['HELLO', ' ', '.'], dict, config);
+    const keywords = extractKeywords(['HELLO', ' ', '.', '[', ':'], dict, new KeywordConfig());
 
     expect(keywords.has('HELLO')).toBe(true);
     expect(keywords.has(' ')).toBe(false);
     expect(keywords.has('.')).toBe(false);
+    expect(keywords.has('[')).toBe(false);
+    expect(keywords.has(':')).toBe(false);
+  });
+
+  test('extractKeywords accepts alphanumeric boundary start symbols', () => {
+    const dict = new SymbolDict();
+    for (const token of ['A', 'Z', '0', '9']) {
+      dict.intern(token);
+    }
+
+    const keywords = extractKeywords(['A', 'Z', '0', '9'], dict, new KeywordConfig());
+
+    expect([...keywords].sort()).toEqual(['0', '9', 'A', 'Z']);
   });
 
   test('extractKeywords skips banned words', () => {
@@ -85,5 +104,18 @@ describe('Keyword Extractor', () => {
     expect(keywords.has('YOU')).toBe(true);
     expect(keywords.has('CAT')).toBe(true);
     expect(keywords.has('I')).toBe(false);
+  });
+
+  test('extractKeywords ignores empty candidates', () => {
+    const dict = new SymbolDict();
+    dict.intern('');
+    dict.intern('HELLO');
+
+    const config = new KeywordConfig();
+    config.swap.pairs = [['EMPTY', '']];
+
+    const keywords = extractKeywords(['', 'EMPTY', 'HELLO'], dict, config);
+    expect(keywords.has('')).toBe(false);
+    expect(keywords.has('HELLO')).toBe(true);
   });
 });

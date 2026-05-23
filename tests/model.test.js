@@ -6,6 +6,9 @@ describe('Model & ContextWindow', () => {
   test('context window initialization', () => {
     const trie = new Trie();
     const ctx = new ContextWindow(5);
+    expect(ctx.slots).toHaveLength(7);
+    expect(ctx.slots.every(slot => slot === null)).toBe(true);
+
     ctx.initialize(trie.root());
 
     expect(ctx.atDepth(0)).toBe(trie.root());
@@ -33,6 +36,15 @@ describe('Model & ContextWindow', () => {
 
     expect(model.dictionary.size).toBe(2); // only sentinels
     expect(model.forward.size).toBe(1); // only root
+  });
+
+  test('learn skips inputs with length exactly equal to order', () => {
+    const model = new BidirectionalModel(3);
+    model.learn(['A', 'B', 'C']);
+
+    expect(model.dictionary.size).toBe(2);
+    expect(model.forward.size).toBe(1);
+    expect(model.backward.size).toBe(1);
   });
 
   test('learn populates dictionary and tries', () => {

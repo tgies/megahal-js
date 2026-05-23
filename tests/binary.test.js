@@ -59,7 +59,11 @@ describe('Binary Serialization', () => {
     const hal = new MegaHal(2);
     hal.learn('Testing 64-bit binary serialization compatibility.');
 
+    const defaultData = hal.exportBrain();
+    const falseData = hal.exportBrain({ use64Bit: false });
     const brainData = hal.exportBrain({ use64Bit: true });
+    expect(falseData).toEqual(defaultData);
+    expect(brainData.length).toBeGreaterThan(defaultData.length);
     expect(brainData).toBeInstanceOf(Uint8Array);
 
     const hal2 = new MegaHal(2);
@@ -106,7 +110,9 @@ describe('Binary Serialization', () => {
       }
     };
 
-    expect(() => hal.exportBrain()).toThrow(RangeError);
+    expect(() => hal.exportBrain()).toThrow(
+      'Dictionary size (65537) exceeds maximum of 65536 symbols supported by the binary format'
+    );
 
     // Restore dictionary
     hal.model.dictionary.entries = originalEntries;
@@ -125,6 +131,61 @@ describe('Binary Serialization', () => {
     } finally {
       hal.model.dictionary.entries = originalEntries;
     }
+  });
+
+  test('serialization accepts a dictionary symbol exactly 255 bytes long', () => {
+    const hal = new MegaHal(2);
+    const maxWord = 'X'.repeat(255);
+    hal.model.dictionary.intern(maxWord);
+
+    const brainData = hal.exportBrain();
+    const hal2 = new MegaHal(2);
+    hal2.importBrain(brainData);
+
+    expect(hal2.model.dictionary.find(maxWord)).toBeDefined();
+  });
+
+  test('serialization accepts exactly 65536 dictionary entries', () => {
+    const hal = new MegaHal(2);
+    const originalEntries = hal.model.dictionary.entries;
+    hal.model.dictionary.entries = new Proxy(
+      { length: 65536 },
+      {
+        get(target, prop) {
+          if (prop === 'length') {
+            return target.length;
+          }
+          if (typeof prop === 'symbol') {
+            return undefined;
+          }
+          const index = Number(prop);
+          if (Number.isInteger(index) && index >= 0 && index < target.length) {
+            return `W${index}`;
+          }
+          return undefined;
+        }
+      }
+    );
+
+    try {
+      expect(() => hal.exportBrain()).not.toThrow();
+    } finally {
+      hal.model.dictionary.entries = originalEntries;
+    }
+  });
+
+  test('serialization grows its writer buffer for large dictionaries', () => {
+    const hal = new MegaHal(2);
+    for (let i = 0; i < 800; i++) {
+      hal.model.dictionary.intern(`WORD_${i.toString().padStart(4, '0')}`);
+    }
+
+    const brainData = hal.exportBrain();
+    const hal2 = new MegaHal(2);
+    hal2.importBrain(brainData);
+
+    expect(brainData.length).toBeGreaterThan(4096);
+    expect(hal2.model.dictionary.find('WORD_0799')).toBeDefined();
   });
 
   test('serialization preserves exact trie node counts and usage values', () => {
@@ -159,6 +220,17 @@ describe('Binary Serialization', () => {
     const hal = new MegaHal(2);
     // Should throw because it will try to read trie data that isn't there
     expect(() => hal.importBrain(truncated)).toThrow();
+  });
+
+  test('deserializing truncated dictionary word reports unexpected end of file', () => {
+    const hal = new MegaHal(2);
+    hal.learn('Dictionary truncation should fail during string reading.');
+
+    const brainData = hal.exportBrain();
+    const truncated = brainData.slice(0, brainData.length - 1);
+    const hal2 = new MegaHal(2);
+
+    expect(() => hal2.importBrain(truncated)).toThrow(/Unexpected end of file/);
   });
 
   test('brain with order=2 roundtrips correctly', () => {
@@ -257,4 +329,3 @@ describe('Binary Serialization', () => {
     expect(data1).toEqual(data2);
   });
 });
-

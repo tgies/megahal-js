@@ -7,17 +7,16 @@ import { evaluateReply } from './evaluator.js';
  */
 
 /**
- * Pick a random integer in [min, max) using the provided RNG.
+ * Pick a random integer in [0, max) using the provided RNG.
  * @param {any} rng
- * @param {number} min
  * @param {number} max
  * @returns {number}
  */
-function randomRange(rng, min, max) {
+function randomRange(rng, max) {
   if (rng && typeof rng.randomRange === 'function') {
-    return rng.randomRange(min, max);
+    return rng.randomRange(0, max);
   }
-  return Math.floor(Math.random() * (max - min)) + min;
+  return Math.floor(Math.random() * max);
 }
 
 /**
@@ -40,7 +39,7 @@ function seed(model, keywords, auxSet, rng) {
   // If keywords exist, try to find a non-auxiliary keyword as seed.
   if (keywords.size > 0) {
     const keywordList = Array.from(keywords).sort();
-    const start = randomRange(rng, 0, keywordList.length);
+    const start = randomRange(rng, keywordList.length);
 
     for (let offset = 0; offset < keywordList.length; offset++) {
       const idx = (start + offset) % keywordList.length;
@@ -54,7 +53,7 @@ function seed(model, keywords, auxSet, rng) {
   }
 
   // Default: pick a random child of the forward root.
-  const idx = randomRange(rng, 0, children.length);
+  const idx = randomRange(rng, children.length);
   return model.forward.node(children[idx]).symbol;
 }
 
@@ -85,8 +84,8 @@ function babble(trie, ctx, dict, keywords, auxSet, reply, usedKey, rng) {
   }
 
   const branch = children.length;
-  let i = randomRange(rng, 0, branch);
-  let count = randomRange(rng, 0, node.usage);
+  let i = randomRange(rng, branch);
+  let count = randomRange(rng, node.usage);
 
   for (let step = 0; step < branch; step++) {
     const childRef = children[i];
@@ -192,15 +191,10 @@ export function generateOneReply(model, keywords, auxSet, rng) {
  * @returns {boolean}
  */
 function tokensEqual(a, b) {
-  if (a.length !== b.length) {
-    return false;
-  }
-  for (let i = 0; i < a.length; i++) {
-    if (a[i].toUpperCase() !== b[i].toUpperCase()) {
-      return false;
-    }
-  }
-  return true;
+  return (
+    a.length === b.length &&
+    a.every((token, i) => token.toUpperCase() === b[i].toUpperCase())
+  );
 }
 
 /**
@@ -260,6 +254,29 @@ export function generateReply(model, inputTokens, keywords, auxSet, limit, rng) 
 }
 
 /**
+ * @param {string} char
+ * @returns {boolean}
+ */
+function isAsciiLetter(char) {
+  return (char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z');
+}
+
+/**
+ * @param {string} char
+ * @returns {boolean}
+ */
+function isAsciiWhitespace(char) {
+  return (
+    char === ' ' ||
+    char === '\t' ||
+    char === '\n' ||
+    char === '\r' ||
+    char === '\f' ||
+    char === '\v'
+  );
+}
+
+/**
  * Capitalize a token sequence per MegaHAL sentence-case rules.
  *
  * @param {string[]} tokens
@@ -270,10 +287,10 @@ export function capitalize(tokens) {
   /** @type {string[]} */
   const result = [];
   let start = true;
+  let offset = 0;
 
-  for (let i = 0; i < raw.length; i++) {
-    const char = raw[i];
-    if (/^[a-zA-Z]$/.test(char)) {
+  for (const char of raw) {
+    if (isAsciiLetter(char)) {
       if (start) {
         result.push(char.toUpperCase());
       } else {
@@ -284,12 +301,13 @@ export function capitalize(tokens) {
       result.push(char);
     }
 
-    if (i > 2 && /^\s$/.test(char)) {
-      const prev = raw[i - 1];
+    if (offset > 2 && isAsciiWhitespace(char)) {
+      const prev = raw[offset - 1];
       if (prev === '!' || prev === '.' || prev === '?') {
         start = true;
       }
     }
+    offset += char.length;
   }
 
   return result.join('');

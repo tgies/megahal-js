@@ -111,14 +111,14 @@ describe('Trie', () => {
 
   test('node() with out-of-bounds ref throws RangeError', () => {
     const trie = new Trie();
-    expect(() => trie.node(999)).toThrow(RangeError);
-    expect(() => trie.node(1)).toThrow(RangeError); // only root at index 0
+    expect(() => trie.node(999)).toThrow('Node reference 999 is out of bounds');
+    expect(() => trie.node(1)).toThrow('Node reference 1 is out of bounds'); // only root at index 0
   });
 
   test('node() with negative ref throws RangeError', () => {
     const trie = new Trie();
-    expect(() => trie.node(-1)).toThrow(RangeError);
-    expect(() => trie.node(-100)).toThrow(RangeError);
+    expect(() => trie.node(-1)).toThrow('Node reference -1 is out of bounds');
+    expect(() => trie.node(-100)).toThrow('Node reference -100 is out of bounds');
   });
 
   test('size getter returns correct count', () => {
@@ -168,4 +168,3 @@ describe('Trie', () => {
     expect(trie.branchCount(child)).toBe(0);
   });
 });
-

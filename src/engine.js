@@ -8,17 +8,16 @@ const DEFAULT_FALLBACK_REPLY = "I don't know enough to answer you yet!";
 const DEFAULT_FALLBACK_GREETING = 'Hello!';
 
 /**
- * Helper to pick a random range value.
+ * Helper to pick a random value in [0, max).
  * @param {any} rng
- * @param {number} min
  * @param {number} max
  * @returns {number}
  */
-function randomRange(rng, min, max) {
+function randomRange(rng, max) {
   if (rng && typeof rng.randomRange === 'function') {
-    return rng.randomRange(min, max);
+    return rng.randomRange(0, max);
   }
-  return Math.floor(Math.random() * (max - min)) + min;
+  return Math.floor(Math.random() * max);
 }
 
 /**
@@ -154,7 +153,7 @@ export class MegaHal {
       return this.fallbackGreeting;
     }
 
-    const idx = randomRange(this.rng, 0, this.greetings.length);
+    const idx = randomRange(this.rng, this.greetings.length);
     const greetingWord = this.greetings[idx];
 
     const keywords = new Set([greetingWord]);
