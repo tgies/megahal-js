@@ -72,7 +72,7 @@
     "lint-staged": "^17.0.5",
     "publint": "^0.3.2",
     "typescript": "^6.0.3",
-    "vitest": "^3.0.0"
+    "vitest": "^4.1.6"
   },
   "lint-staged": {
     "*.js": "eslint --fix"
