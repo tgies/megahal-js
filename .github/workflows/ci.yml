@@ -89,7 +89,7 @@ jobs:
         run: npm run test:coverage
       
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@0565863a3fe49b735887d9c1f4c91e28d68ee5a5 # v5.2.1
+        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
