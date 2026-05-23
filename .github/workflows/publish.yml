@@ -44,6 +44,9 @@ jobs:
       - name: Run quality check
         run: npm run check
 
+      - name: Build type declarations
+        run: npm run build:types
+
       - name: Validate package exports
         run: npx publint
 
