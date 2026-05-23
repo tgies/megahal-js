@@ -5,7 +5,8 @@
     "html",
     "json",
     "clear-text",
-    "progress"
+    "progress",
+    "dashboard"
   ],
   "testRunner": "vitest",
   "mutate": [
@@ -17,6 +18,10 @@
     "high": 90,
     "low": 80,
     "break": 75
+  },
+  "dashboard": {
+    "project": "github.com/tgies/megahal-js",
+    "reportType": "full"
   },
   "htmlReporter": {
     "fileName": "reports/mutation/mutation.html"
