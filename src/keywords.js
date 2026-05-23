@@ -49,6 +49,17 @@ export class KeywordConfig {
 }
 
 /**
+ * @param {string|undefined} char
+ * @returns {boolean}
+ */
+function isKeywordStart(char) {
+  return char !== undefined && (
+    (char >= 'A' && char <= 'Z') ||
+    (char >= '0' && char <= '9')
+  );
+}
+
+/**
  * Checks if a candidate is eligible for keyword selection.
  * @param {string} candidate
  * @param {import('./dict.js').SymbolDict} dict
@@ -57,12 +68,8 @@ export class KeywordConfig {
  * @returns {boolean}
  */
 function isKeywordEligible(candidate, dict, config, auxPass) {
-  if (!candidate || candidate.length === 0) {
-    return false;
-  }
-
   const firstChar = candidate[0];
-  if (!/^[A-Z0-9]$/.test(firstChar)) {
+  if (!isKeywordStart(firstChar)) {
     return false;
   }
 

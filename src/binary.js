@@ -16,11 +16,9 @@ class BinaryWriter {
    * @param {number} size
    */
   _ensure(size) {
-    if (this.offset + size > this.buffer.byteLength) {
-      let newLength = this.buffer.byteLength * 2;
-      while (this.offset + size > newLength) {
-        newLength *= 2;
-      }
+    const requiredLength = this.offset + size;
+    if (requiredLength > this.buffer.byteLength) {
+      const newLength = Math.max(this.buffer.byteLength * 2, requiredLength);
       const newBuffer = new Uint8Array(newLength);
       newBuffer.set(this.buffer);
       this.buffer = newBuffer;
@@ -66,16 +64,6 @@ class BinaryWriter {
     this._ensure(bytes.length);
     this.buffer.set(bytes, this.offset);
     this.offset += bytes.length;
-  }
-
-  /**
-   * Write a UTF-8 string.
-   * @param {string} str
-   */
-  writeString(str) {
-    const encoder = new TextEncoder();
-    const bytes = encoder.encode(str);
-    this.writeBytes(bytes);
   }
 
   /**
@@ -152,13 +140,6 @@ class BinaryReader {
     return decoder.decode(bytes);
   }
 
-  /**
-   * Check if there are more bytes to read.
-   * @returns {boolean}
-   */
-  hasMore() {
-    return this.offset < this.buffer.byteLength;
-  }
 }
 
 /**
@@ -228,9 +209,6 @@ export function serializeBrain(model, options = {}) {
   const writer = new BinaryWriter();
 
   const cookieBytes = new TextEncoder().encode(COOKIE);
-  if (cookieBytes.length !== 9) {
-    throw new Error('Cookie size must be exactly 9 bytes');
-  }
   writer.writeBytes(cookieBytes);
 
   writer.writeUint8(model.order);
