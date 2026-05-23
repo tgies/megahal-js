@@ -36,7 +36,6 @@ jobs:
               - 'eslint.config.js'
               - 'stryker.config.json'
               - '.github/workflows/**'
-              - '.pre-commit-config.yaml'
 
   lint:
     name: Lint & Style
@@ -57,13 +56,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Setup Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
-        with:
-          python-version: '3.12'
+      - name: Run ESLint
+        run: npm run lint
 
-      - name: Run pre-commit hooks
-        uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1
+      - name: Run actionlint
+        uses: reviewdog/action-actionlint@6fb7acc99f4a1008869fa8a0f09cfca740837d9d # v1.72.0
 
   test:
     name: Test (Node ${{ matrix.node-version }})
