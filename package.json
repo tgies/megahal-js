@@ -1,5 +1,8 @@
 {
-  "name": "megahal-js",
+  "name": "@tgies/megahal-js",
+  "publishConfig": {
+    "access": "public"
+  },
   "version": "1.0.0",
   "description": "A JavaScript port of the MegaHAL conversational engine supporting both Node.js and Browser environments.",
   "type": "module",
