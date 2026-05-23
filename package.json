@@ -1,0 +1,80 @@
+{
+  "name": "megahal-js",
+  "version": "1.0.0",
+  "description": "A JavaScript port of the MegaHAL conversational engine supporting both Node.js and Browser environments.",
+  "type": "module",
+  "main": "./index.js",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.js"
+    }
+  },
+  "types": "./index.d.ts",
+  "engines": {
+    "node": ">= 20"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "index.d.ts.map",
+    "src/**/*.js",
+    "src/**/*.d.ts",
+    "src/**/*.d.ts.map",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:mutation": "stryker run",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "build:types": "node scripts/clean-types.js && tsc --declaration --emitDeclarationOnly --noEmit false",
+    "check": "npm run lint && npm run typecheck && npm run test",
+    "prepare": "husky",
+    "prepack": "npm run build:types"
+  },
+  "keywords": [
+    "megahal",
+    "chatbot",
+    "markov",
+    "n-gram",
+    "conversational-ai"
+  ],
+  "author": "Tony Gies <tgies@tgies.net>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tgies/megahal-js.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tgies/megahal-js/issues"
+  },
+  "homepage": "https://github.com/tgies/megahal-js#readme",
+  "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.2",
+    "@commitlint/cli": "^20.4.3",
+    "@commitlint/config-conventional": "^20.5.0",
+    "@eslint/js": "^10.0.1",
+    "@stryker-mutator/core": "^9.6.0",
+    "@stryker-mutator/vitest-runner": "^9.6.0",
+    "@types/node": "^25.6.0",
+    "@vitest/coverage-v8": "^3.0.0",
+    "eslint": "^10.0.3",
+    "globals": "^17.4.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.3.2",
+    "publint": "^0.3.2",
+    "typescript": "^6.0.3",
+    "vitest": "^3.0.0"
+  },
+  "lint-staged": {
+    "*.js": "eslint --fix"
+  },
+  "overrides": {
+    "fflate": "0.8.2"
+  }
+}

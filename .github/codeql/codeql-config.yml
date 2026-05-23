@@ -1,0 +1,5 @@
+name: "CodeQL config for megahal-js"
+
+# Exclude test files from security scanning
+paths-ignore:
+  - 'tests/**'
