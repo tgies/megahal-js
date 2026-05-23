@@ -112,6 +112,21 @@ describe('Binary Serialization', () => {
     hal.model.dictionary.entries = originalEntries;
   });
 
+  test('serialization throws if a dictionary symbol exceeds 255 bytes', () => {
+    const hal = new MegaHal(2);
+    hal.learn('Seed sentence to populate dictionary.');
+
+    const originalEntries = hal.model.dictionary.entries;
+    const longWord = 'X'.repeat(256);
+    hal.model.dictionary.entries = [...originalEntries, longWord];
+
+    try {
+      expect(() => hal.exportBrain()).toThrow(/255/);
+    } finally {
+      hal.model.dictionary.entries = originalEntries;
+    }
+  });
+
   test('serialization preserves exact trie node counts and usage values', () => {
     const hal = new MegaHal(2);
     hal.learn('The quick brown fox.');

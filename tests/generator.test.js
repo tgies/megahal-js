@@ -454,6 +454,19 @@ describe('generateReply', () => {
     expect(Array.isArray(result)).toBe(true);
   });
 
+  test('tokensEqual: same length, differing tokens hits position-mismatch branch', () => {
+    // Baseline reply from a single-sentence model is deterministic over [A, B, C].
+    // Input has the same structural length but disjoint vocabulary, so tokensEqual
+    // must walk past the length check and return false at the first position.
+    const model = buildModel(2, [['ALPHA', ' ', 'BETA', ' ', 'GAMMA']]);
+    const rng = makeSeededRng(1);
+    const result = generateReply(
+      model, ['XRAY', ' ', 'YANKEE', ' ', 'ZULU'], new Set(), new Set(),
+      { timeout: 0, maxIterations: 3 }, rng
+    );
+    expect(Array.isArray(result)).toBe(true);
+  });
+
   test('baseline that equals input tokens becomes empty array', () => {
     // If generateOneReply with no keywords produces the exact input tokens,
     // best is set to []. This tests line 226-227.

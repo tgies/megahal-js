@@ -240,6 +240,24 @@ describe('MegaHal Engine Integration', () => {
     }
   });
 
+  test('loadWordList refuses to run in a browser-like environment', async () => {
+    globalThis.window = {};
+    try {
+      await expect(loadWordList('ignored')).rejects.toThrow(/Node\.js/);
+    } finally {
+      delete globalThis.window;
+    }
+  });
+
+  test('loadSwapFile refuses to run in a browser-like environment', async () => {
+    globalThis.window = {};
+    try {
+      await expect(loadSwapFile('ignored')).rejects.toThrow(/Node\.js/);
+    } finally {
+      delete globalThis.window;
+    }
+  });
+
   test('respond uses custom fallbackReply when model cannot generate', () => {
     // Use high order so the input (6 tokens) is too short to learn (needs > 10)
     const hal = new MegaHal(10);
