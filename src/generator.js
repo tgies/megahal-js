@@ -38,7 +38,7 @@ function seed(model, keywords, auxSet, rng) {
 
   // If keywords exist, try to find a non-auxiliary keyword as seed.
   if (keywords.size > 0) {
-    const keywordList = Array.from(keywords).sort();
+    const keywordList = Array.from(keywords);
     const start = randomRange(rng, keywordList.length);
 
     for (let offset = 0; offset < keywordList.length; offset++) {

@@ -686,6 +686,62 @@ describe('seed and babble edge cases via generateOneReply', () => {
 });
 
 // ============================================================================
+// Issue #10: seed() must scan keywords in input (first-occurrence) order,
+// not sorted order. The C reference iterates keys->entry[i] from rnd(keys->size)
+// using the insertion-ordered dictionary (megahal.c:2697-2711).
+// ============================================================================
+describe('seed: input-order keyword scanning (issue #10)', () => {
+  // Helper: build a fixed-output RNG that always returns the given value.
+  function fixedRng(value) {
+    return { randomRange: () => value };
+  }
+
+  test('seed uses input order when RNG picks start=0: selects first-inserted keyword', () => {
+    // Model has both WORD2 and WORD1 in its dictionary.
+    // Keywords added in this order: WORD2 (inserted first), WORD1 (inserted second).
+    // Sorted order would be: WORD1, WORD2.
+    // With start=0:
+    //   - C/input order: checks slot 0 = WORD2 first → selects WORD2
+    //   - Buggy sorted order: checks slot 0 = WORD1 first → selects WORD1
+    // We detect which was seeded by checking what appears in a single-iteration reply.
+
+    const model = buildModel(2, [
+      ['WORD2', ' ', 'FOLLOWS', ' ', 'WORD2'],
+      ['WORD1', ' ', 'LEADS', ' ', 'WORD1'],
+    ]);
+
+    // Input order: WORD2 first, WORD1 second.
+    const keywords = new Set(['WORD2', 'WORD1']);
+
+    // fixedRng(0) always picks start=0, so seed selects slot-0 of whatever ordering.
+    const reply = generateOneReply(model, keywords, new Set(), fixedRng(0));
+
+    // With correct input-order scanning and start=0, seed selects WORD2 (inserted first).
+    // With buggy sorted scanning, seed selects WORD1 (alphabetically first).
+    // The reply must include the seeded word.
+    expect(reply).toContain('WORD2');
+    expect(reply).not.toContain('WORD1');
+  });
+
+  test('seed scan wraps around: start past last slot still finds valid keyword', () => {
+    // Four keywords, only the last alphabetically (ZETA) is in the model.
+    // In input order it is added last. Regardless of where RNG starts, the
+    // scan must wrap and find it.
+    const model = buildModel(2, [['ZETA', ' ', 'BEAM', ' ', 'POINT']]);
+    // Input order: ZETA first, then non-model words.
+    const keywords = new Set(['ZETA', 'ALPHA', 'BETA', 'GAMMA']);
+
+    let zetaCount = 0;
+    for (let s = 0; s < 30; s++) {
+      const rng = makeSeededRng(s);
+      const reply = generateOneReply(model, keywords, new Set(), rng);
+      if (reply.includes('ZETA')) {zetaCount++;}
+    }
+    expect(zetaCount).toBeGreaterThan(0);
+  });
+});
+
+// ============================================================================
 // evaluateReply: detailed entropy computation tests
 // ============================================================================
 describe('evaluateReply: entropy computation details', () => {
