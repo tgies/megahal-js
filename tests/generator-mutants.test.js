@@ -177,16 +177,24 @@ describe('seed function behavior', () => {
     expect(reply.length).toBeGreaterThan(0);
   });
 
-  test('sorted keyword list ensures deterministic seed selection', () => {
+  test('input-order keyword scanning: insertion order determines seed selection', () => {
+    // C reference (megahal.c:2697-2711): seed() scans keys in insertion order,
+    // starting at rnd(keys->size). The JS port must not sort the keyword list.
+    //
+    // kw1 inserts A first, then C: slots [A, C].
+    // kw2 inserts C first, then A: slots [C, A].
+    // makeSeededRng(42) picks start index 1 for a 2-element list.
+    //   kw1: starts at slot 1 (C) → seeds C → reply ['C', 'D']
+    //   kw2: starts at slot 1 (A) → seeds A → reply ['A', 'B']
+    // With sorted order (old buggy behavior) both would start at the same symbol.
     const model = buildModel(1, [['A', 'B'], ['C', 'D']]);
-    // Same keywords in different Set insertion orders should produce same result
-    // because seed() sorts them: Array.from(keywords).sort()
-    const kw1 = new Set(['A', 'C']);
-    const kw2 = new Set(['C', 'A']);
+    const kw1 = new Set(['A', 'C']); // input order: slots [A, C]
+    const kw2 = new Set(['C', 'A']); // input order: slots [C, A]
     const reply1 = generateOneReply(model, kw1, new Set(), makeSeededRng(42));
     const reply2 = generateOneReply(model, kw2, new Set(), makeSeededRng(42));
-    expect(reply1).toEqual(reply2);
+    // Different insertion orders with the same RNG seed produce different results.
     expect(reply1).toEqual(['C', 'D']);
+    expect(reply2).toEqual(['A', 'B']);
   });
 
   test('all auxiliary keywords are skipped before random fallback', () => {
