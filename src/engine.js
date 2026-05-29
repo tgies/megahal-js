@@ -156,11 +156,12 @@ export class MegaHal {
     const idx = randomRange(this.rng, this.greetings.length);
     const greetingWord = this.greetings[idx];
 
-    const keywords = new Set([greetingWord]);
+    const greetTokens = tokenize(greetingWord);
+    const keywords = extractKeywords(greetTokens, this.model.dictionary, this.keywordConfig);
 
     const replyTokens = generateReply(
       this.model,
-      [],
+      greetTokens,
       keywords,
       this.keywordConfig.auxiliary,
       this.limit,
