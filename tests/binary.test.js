@@ -26,10 +26,24 @@ describe('Binary Serialization', () => {
     expect(hal2.model.forward.node(0).usage).toBe(hal.model.forward.node(0).usage);
   });
 
-  test('load brain throws error on invalid cookie', () => {
-    const hal = new MegaHal(2);
+  test('importBrain with invalid cookie does not throw and leaves model empty', () => {
+    // Create data with a bad magic cookie (9 bytes of wrong data + padding).
     const invalidData = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-    expect(() => hal.importBrain(invalidData)).toThrow(/cookie/i);
+
+    // Must not throw on cookie mismatch.
+    const hal = new MegaHal(2);
+    expect(() => hal.importBrain(invalidData)).not.toThrow();
+
+    // importBrain returns false on cookie mismatch to signal failure to the caller.
+    expect(hal.importBrain(invalidData)).toBe(false);
+
+    // The model must be left in a coherent (empty) state after a failed import:
+    // no partial data applied, only sentinel entries present.
+    const hal2 = new MegaHal(2);
+    hal2.importBrain(invalidData);
+    expect(hal2.model.dictionary.size).toBe(2);
+    expect(hal2.model.forward.size).toBe(1);
+    expect(hal2.model.backward.size).toBe(1);
   });
 
   test('saveBrain and loadBrain filesystem files', async () => {

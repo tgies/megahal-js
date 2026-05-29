@@ -247,15 +247,20 @@ export function serializeBrain(model, options = {}) {
 /**
  * Deserialize binary brain data into a BidirectionalModel.
  *
+ * Returns false if the magic cookie does not match (caller should fall back to
+ * training data, matching the C load_model() behavior of returning FALSE on
+ * cookie mismatch). Throws on other (structural) errors.
+ *
  * @param {Uint8Array|ArrayBuffer} data
  * @param {import('./model.js').BidirectionalModel} model
+ * @returns {boolean} true on success, false on cookie mismatch
  */
 export function deserializeBrain(data, model) {
   const reader = new BinaryReader(data);
 
   const cookie = reader.readString(9);
   if (cookie !== COOKIE) {
-    throw new Error('Invalid brain file: Magic cookie mismatch');
+    return false;
   }
 
   const order = reader.readUint8();
@@ -303,4 +308,5 @@ export function deserializeBrain(data, model) {
   }
 
   model.dictionary = dict;
+  return true;
 }
