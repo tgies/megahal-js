@@ -284,10 +284,19 @@ export function parseSwapFile(text) {
     if (trimmed === '' || trimmed.startsWith('#')) {
       continue;
     }
+    // C initialize_swap (megahal.c:2811-2812): from = strtok(buffer, "\t "),
+    // to = strtok(NULL, "\t \n#"). The to field also breaks on '#', so an inline
+    // comment after the substitution word is dropped; the from field does not.
     const parts = trimmed.split(/\s+/);
-    if (parts.length >= 2) {
-      pairs.push([parts[0].toUpperCase(), parts[1].toUpperCase()]);
+    if (parts.length < 2) {
+      continue;
     }
+    const hash = parts[1].indexOf('#');
+    const to = hash === -1 ? parts[1] : parts[1].slice(0, hash);
+    if (to === '') {
+      continue;
+    }
+    pairs.push([parts[0].toUpperCase(), to.toUpperCase()]);
   }
   return pairs;
 }

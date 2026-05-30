@@ -218,6 +218,12 @@ describe('MegaHal Engine Integration', () => {
     expect(parsed).toEqual([['I', 'YOU']]);
   });
 
+  test('parseSwapFile drops an inline # comment from the to field', () => {
+    expect(parseSwapFile('FOO BAR#comment\n')).toEqual([['FOO', 'BAR']]);
+    expect(parseSwapFile('I YOU # perspective swap\n')).toEqual([['I', 'YOU']]);
+    expect(parseSwapFile('FOO #\n')).toEqual([]); // to field is only a comment
+  });
+
   test('parseSwapFile uppercases both words', () => {
     const raw = 'hello world\n';
     const parsed = parseSwapFile(raw);
