@@ -80,12 +80,14 @@ function isBoundary(input, pos) {
 /**
  * Tokenize input text per MegaHAL rules.
  *
+ * Empty input yields an empty array (no tokens).
+ *
  * @param {string} input
  * @returns {string[]}
  */
 export function tokenize(input) {
   if (!input) {
-    return ['.'];
+    return [];
   }
 
   const upper = input.toUpperCase();

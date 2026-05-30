@@ -2,8 +2,12 @@ import { describe, test, expect } from 'vitest';
 import { tokenize } from '../src/tokenizer.js';
 
 describe('Tokenizer', () => {
-  test('empty input returns single period', () => {
-    expect(tokenize('')).toEqual(['.']);
+  test('empty input returns no tokens', () => {
+    // C make_words returns immediately on empty input (megahal.c:2053): zero tokens.
+    expect(tokenize('')).toEqual([]);
+  });
+
+  test('whitespace-only input collapses to a single period', () => {
     expect(tokenize('   ')).toEqual(['.']);
   });
 
@@ -62,12 +66,12 @@ describe('Tokenizer', () => {
     expect(tokens).toEqual(['5', '.']);
   });
 
-  test('tokenize(null) returns single period', () => {
-    expect(tokenize(null)).toEqual(['.']);
+  test('tokenize(null) returns no tokens', () => {
+    expect(tokenize(null)).toEqual([]);
   });
 
-  test('tokenize(undefined) returns single period', () => {
-    expect(tokenize(undefined)).toEqual(['.']);
+  test('tokenize(undefined) returns no tokens', () => {
+    expect(tokenize(undefined)).toEqual([]);
   });
 
   test('single character input a', () => {
