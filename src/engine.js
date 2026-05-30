@@ -187,11 +187,14 @@ export class MegaHal {
 
   /**
    * Import the model state from binary brain data.
+   * Returns false if the data has a bad magic cookie (model is left unchanged);
+   * throws on other structural errors. Matches the C load_model() contract.
    * Works in both Node and Browser.
    * @param {Uint8Array|ArrayBuffer} data
+   * @returns {boolean} true on success, false on magic cookie mismatch
    */
   importBrain(data) {
-    deserializeBrain(data, this.model);
+    return deserializeBrain(data, this.model);
   }
 
   /**
@@ -226,8 +229,9 @@ export class MegaHal {
 
   /**
    * Node-only: Load the model from a binary brain file.
+   * Returns false if the file has a bad magic cookie; throws on other errors.
    * @param {string} path
-   * @returns {Promise<void>}
+   * @returns {Promise<boolean>} true on success, false on magic cookie mismatch
    */
   async loadBrain(path) {
     if (typeof window !== 'undefined' || typeof process === 'undefined') {
@@ -235,7 +239,7 @@ export class MegaHal {
     }
     const fs = await import('node:fs/promises');
     const data = await fs.readFile(path);
-    this.importBrain(data);
+    return this.importBrain(data);
   }
 
   /**
