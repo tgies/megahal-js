@@ -186,7 +186,6 @@ describe('seed function behavior', () => {
     // makeSeededRng(42) picks start index 1 for a 2-element list.
     //   kw1: starts at slot 1 (C) → seeds C → reply ['C', 'D']
     //   kw2: starts at slot 1 (A) → seeds A → reply ['A', 'B']
-    // With sorted order (old buggy behavior) both would start at the same symbol.
     const model = buildModel(1, [['A', 'B'], ['C', 'D']]);
     const kw1 = new Set(['A', 'C']); // input order: slots [A, C]
     const kw2 = new Set(['C', 'A']); // input order: slots [C, A]

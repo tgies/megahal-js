@@ -476,13 +476,10 @@ describe('MegaHal Engine Integration', () => {
   test('greet anti-echo: reply identical to tokenized greeting is rejected', () => {
     // C reference: generate_reply() calls dissimilar(greets, reply); a reply
     // token-for-token identical to the greeting input is rejected.
-    // Before the fix, greet() passed inputTokens=[] so tokensEqual(candidate, [])
-    // never fired — any non-empty candidate was accepted, including one that echoed
-    // the greeting word back.
-    //
     // With order=1 and a model learned only on 'Hello.', the only possible reply
-    // is ['HELLO', '.']. With the fix, inputTokens = tokenize('Hello') = ['HELLO', '.'],
-    // so that candidate is rejected and greet() falls back to the fallback greeting.
+    // is ['HELLO', '.']. greet() tokenizes its greeting word into inputTokens, so
+    // that candidate equals inputTokens, is rejected, and greet() falls back to the
+    // fallback greeting.
 
     // Part 1: verify the underlying generateReply anti-echo behavior.
     const model = new BidirectionalModel(1);
@@ -494,33 +491,32 @@ describe('MegaHal Engine Integration', () => {
     // HELLO is in the dict and not banned/aux, so it should be a keyword.
     expect(keywords.has('HELLO')).toBe(true);
 
-    // With buggy inputTokens=[]: the candidate ['HELLO','.'] is NOT equal to []
-    // so it passes the anti-echo gate and becomes best.
+    // inputTokens=[] leaves the candidate ['HELLO','.'] unequal to [], so it passes
+    // the anti-echo gate and becomes the reply.
     const rng0 = makeSeededRng(0);
-    const buggyCandidateTokens = generateReply(
+    const emptyInputResult = generateReply(
       model, [], keywords, new Set(), { timeout: 0, maxIterations: 1 }, rng0
     );
-    expect(buggyCandidateTokens).toEqual(['HELLO', '.']);
+    expect(emptyInputResult).toEqual(['HELLO', '.']);
 
-    // With fixed inputTokens = greetTokens: ['HELLO','.'] === greetTokens → rejected.
-    const rng0Fixed = makeSeededRng(0);
-    const fixedResult = generateReply(
-      model, greetTokens, keywords, new Set(), { timeout: 0, maxIterations: 1 }, rng0Fixed
+    // inputTokens = greetTokens makes ['HELLO','.'] equal to greetTokens, so it is
+    // rejected and the reply is empty.
+    const rng0b = makeSeededRng(0);
+    const greetInputResult = generateReply(
+      model, greetTokens, keywords, new Set(), { timeout: 0, maxIterations: 1 }, rng0b
     );
-    expect(fixedResult).toEqual([]);
+    expect(greetInputResult).toEqual([]);
 
-    // Part 2: verify that greet() itself falls back when all candidates are anti-echoed.
-    // With a single-sentence model ('Hello.') and 'Hello' as the greeting, every candidate
-    // is ['HELLO', '.'] which equals tokenize('Hello'). The fix causes greet() to return
-    // the fallback greeting rather than echoing back the greeting word.
+    // Part 2: greet() falls back when all candidates are anti-echoed. With a
+    // single-sentence model ('Hello.') and 'Hello' as the greeting, every candidate
+    // is ['HELLO', '.'], which equals tokenize('Hello'), so greet() returns the
+    // fallback greeting instead of the greeting word.
     const hal = new MegaHal(1, makeSeededRng(0));
     hal.setFallbackGreeting('Hello!');
     hal.setLimit({ timeout: 0, maxIterations: 1 });
     hal.learn('Hello.');
     hal.setGreetings(['Hello']);
 
-    // With the fix: candidate ['HELLO','.'] === inputTokens → rejected → fallback.
-    // With the bug: candidate ['HELLO','.'] !== [] → accepted → returns 'Hello.' (echo).
     const greetReply = hal.greet();
     expect(greetReply).toBe('Hello!');
   });
@@ -528,9 +524,7 @@ describe('MegaHal Engine Integration', () => {
   test('greet: greeting word not in model dictionary is not forced as keyword', () => {
     // C reference: make_keywords runs add_key() which skips words not in model
     // dictionary (megahal.c:2325-2326). A greeting word absent from the model
-    // should not be injected as a keyword.
-    // Before the fix, greet() force-inserted the raw greetingWord string into
-    // the keywords Set bypassing all eligibility checks.
+    // must not be injected as a keyword.
     const model2 = new BidirectionalModel(2);
     // Train on sentences that do NOT include 'AHOY'
     model2.learn(['THE', ' ', 'CAT', ' ', 'SAT', ' ', 'TODAY', '.']);
@@ -546,7 +540,6 @@ describe('MegaHal Engine Integration', () => {
 
   test('greet: banned greeting word is excluded from keywords via extractKeywords', () => {
     // C reference: add_key() skips banned words (megahal.c:2328-2330).
-    // Before the fix, greet() bypassed extractKeywords and force-inserted the word.
     const model3 = new BidirectionalModel(2);
     model3.learn(['HELLO', ' ', 'THERE', ' ', 'TODAY', '.']);
 

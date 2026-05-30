@@ -697,13 +697,10 @@ describe('seed: input-order keyword scanning (issue #10)', () => {
   }
 
   test('seed uses input order when RNG picks start=0: selects first-inserted keyword', () => {
-    // Model has both WORD2 and WORD1 in its dictionary.
-    // Keywords added in this order: WORD2 (inserted first), WORD1 (inserted second).
-    // Sorted order would be: WORD1, WORD2.
-    // With start=0:
-    //   - C/input order: checks slot 0 = WORD2 first → selects WORD2
-    //   - Buggy sorted order: checks slot 0 = WORD1 first → selects WORD1
-    // We detect which was seeded by checking what appears in a single-iteration reply.
+    // Model has both WORD2 and WORD1 in its dictionary. Keywords are inserted in
+    // the order WORD2 then WORD1; sorted order would be WORD1 then WORD2. With
+    // start=0, input-order scanning checks slot 0 (WORD2) first and seeds WORD2.
+    // We detect the seed by checking what appears in a single-iteration reply.
 
     const model = buildModel(2, [
       ['WORD2', ' ', 'FOLLOWS', ' ', 'WORD2'],
@@ -713,11 +710,10 @@ describe('seed: input-order keyword scanning (issue #10)', () => {
     // Input order: WORD2 first, WORD1 second.
     const keywords = new Set(['WORD2', 'WORD1']);
 
-    // fixedRng(0) always picks start=0, so seed selects slot-0 of whatever ordering.
+    // fixedRng(0) always picks start=0, so seed selects slot 0 of the input order.
     const reply = generateOneReply(model, keywords, new Set(), fixedRng(0));
 
-    // With correct input-order scanning and start=0, seed selects WORD2 (inserted first).
-    // With buggy sorted scanning, seed selects WORD1 (alphabetically first).
+    // Input-order scanning with start=0 seeds WORD2 (inserted first), not WORD1.
     // The reply must include the seeded word.
     expect(reply).toContain('WORD2');
     expect(reply).not.toContain('WORD1');
