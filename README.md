@@ -12,7 +12,7 @@ MegaHAL-JS runs natively in Node.js (>= 20) and in all modern browsers.
 ## Installation
 
 ```bash
-npm install @tgies/megahal-js
+npm install megahal
 ```
 
 ---
@@ -22,7 +22,7 @@ npm install @tgies/megahal-js
 ### Modern ESM (Node & Browser)
 
 ```javascript
-import { MegaHal } from '@tgies/megahal-js';
+import { MegaHal } from 'megahal';
 
 // Instantiate with order N (default is 5)
 const hal = new MegaHal(5);
@@ -47,7 +47,7 @@ console.log(reply);
 </head>
 <body>
   <script type="module">
-    import { MegaHal } from './node_modules/megahal-js/index.js';
+    import { MegaHal } from './node_modules/megahal/index.js';
     
     const hal = new MegaHal(3);
     hal.learn('Hello world!');

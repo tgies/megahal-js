@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-06-12
+
+### Changed
+- Renamed the npm package from `@tgies/megahal-js` to `megahal`. The code is
+  unchanged from 1.0.0; update imports to `megahal`.
+
 ## [1.0.0] - 2026-05-22
 
 Initial release. A JavaScript port of the MegaHAL conversational engine
@@ -24,4 +30,5 @@ Initial release. A JavaScript port of the MegaHAL conversational engine
 - Default support file data (banned, auxiliary, greeting, swap) bundled.
 - TypeScript declarations generated from JSDoc.
 
+[1.0.1]: https://github.com/tgies/megahal-js/releases/tag/v1.0.1
 [1.0.0]: https://github.com/tgies/megahal-js/releases/tag/v1.0.0
